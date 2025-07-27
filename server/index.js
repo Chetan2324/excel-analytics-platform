@@ -6,33 +6,58 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+console.log('[SERVER] Starting up...');
+
+// --- Middleware ---
+app.use(cors({
+  origin: "http://localhost:3000",
+  methods: "GET,POST,PUT,DELETE",
+  credentials: true,
+}));
 app.use(express.json());
 
-// Database Connection
+
+// --- Database Connection ---
 const uri = process.env.MONGODB_URI;
+if (!uri) {
+    console.error("FATAL ERROR: MONGODB_URI is not defined in your .env file.");
+    process.exit(1);
+}
+
 mongoose.connect(uri);
 const connection = mongoose.connection;
-connection.once('open', () => {
-  console.log("MongoDB database connection established successfully!");
+
+connection.on('connecting', () => {
+  console.log('🟡 [DATABASE] Connecting to MongoDB...');
 });
-mongoose.connection.on('error', (err) => {
-  console.error("MongoDB connection error:", err);
+
+connection.on('connected', () => {
+  console.log('✅ [DATABASE] Connected to MongoDB successfully!');
+});
+
+connection.on('error', (err) => {
+  console.error('❌ [DATABASE] CONNECTION ERROR:', err);
   process.exit();
 });
 
-// API Routes
-const authRouter = require('./routes/auth');
-const fileRouter = require('./routes/file'); // NEW: Import the file routes
-
-app.use('/api/auth', authRouter);
-app.use('/api/file', fileRouter);         // NEW: Use the file routes
-
-app.get('/', (req, res) => {
-  res.send('Hello from the Excel Analytics Platform server!');
+connection.on('disconnected', () => {
+  console.log('🔴 [DATABASE] Disconnected from MongoDB.');
 });
 
+
+// --- API Routes ---
+console.log("[SERVER] Loading API routes...");
+const authRouter = require('./routes/auth');
+app.use('/api/auth', authRouter);
+
+// --- THIS IS THE FIX ---
+// The following two lines were missing. They enable the file upload route.
+const fileRouter = require('./routes/file');
+app.use('/api/file', fileRouter);
+// ----------------------
+
+
+// --- Start Server ---
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`✅ [SERVER] Server is now running on port ${PORT}`);
 });

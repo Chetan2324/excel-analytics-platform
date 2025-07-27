@@ -19,14 +19,23 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+            // The API URL is hardcoded here for reliability.
+            // Ensure your server is running on port 5000.
+            const API_URL = 'http://localhost:5000';
+            
             const response = await axios.post(`${API_URL}/api/auth/login`, formData);
+            
             toast.success(response.data.message);
             localStorage.setItem('auth-token', response.data.token);
-            navigate('/');
+            
+            // Navigate to the dashboard on successful login
+            navigate('/dashboard'); // Make sure you have a '/dashboard' route in App.js
+
         } catch (error) {
+            // This provides a more specific error message from the server if available.
             const errorMessage = error.response?.data?.message || "An error occurred during login.";
             toast.error(errorMessage);
+            console.error("Login failed:", error);
         }
     };
 
